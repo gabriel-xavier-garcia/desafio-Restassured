@@ -1,6 +1,7 @@
 package com.devsuperior.dsmovie.controllers;
 
 import com.devsuperior.dsmovie.tests.TokenUtil;
+import io.restassured.http.ContentType;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,13 +30,14 @@ public class MovieControllerRA {
 
 		existingMovieId = 1L;
 		nonExistingMovieId = 100L;
-		adminUsername = "joao@gmail.com";
+		adminUsername = "maria@gmail.com";
 		adminPassword = "123456";
-		clientUsername = "maria@gmail.com";
+		clientUsername = "joao@gmail.com";
 		clientPassword = "123456";
 
 		adminToken = TokenUtil.obtainAccessToken(adminUsername, adminPassword);
 		clientToken = TokenUtil.obtainAccessToken(clientUsername, clientPassword);
+		invalidToken = "xpto" + adminToken;
 
 		postMovieInstance = new HashMap<>();
 		postMovieInstance.put("title", "Test Movie");
@@ -98,14 +100,40 @@ public class MovieControllerRA {
 	
 	@Test
 	public void insertShouldReturnUnprocessableEntityWhenAdminLoggedAndBlankTitle() {
+		postMovieInstance.put("title", null);
 
+		given()
+				.header("Authorization", "Bearer " + adminToken)
+				.contentType(ContentType.JSON)
+				.body(postMovieInstance)
+				.when()
+				.post("/movies")
+				.then()
+				.statusCode(422)
+				.body("errors[0].fieldName", equalTo("title"));
 	}
 	
 	@Test
 	public void insertShouldReturnForbiddenWhenClientLogged() throws Exception {
+		given()
+				.header("Authorization", "Bearer " + clientToken)
+				.contentType(ContentType.JSON)
+				.body(postMovieInstance)
+				.when()
+				.post("/movies")
+				.then()
+				.statusCode(403);
 	}
 	
 	@Test
 	public void insertShouldReturnUnauthorizedWhenInvalidToken() throws Exception {
+		given()
+				.header("Authorization", "Bearer " + invalidToken)
+				.contentType(ContentType.JSON)
+				.body(postMovieInstance)
+				.when()
+				.post("/movies")
+				.then()
+				.statusCode(401);
 	}
 }
